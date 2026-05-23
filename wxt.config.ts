@@ -4,6 +4,14 @@ import { defineConfig } from "wxt";
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  manifest: {
+    web_accessible_resources: [
+      {
+        resources: ["fonts/*"],
+        matches: ["*://*.instagram.com/*"],
+      },
+    ],
+  },
   webExt: {
     chromiumProfile: resolve(".wxt/chrome-data"),
     keepProfileChanges: true,

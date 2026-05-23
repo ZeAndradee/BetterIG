@@ -1,20 +1,31 @@
+:global(:host) {
+  --igw-primary: #ff3040;
+  --igw-font: "Inter Variable", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: var(--igw-font);
+}
+
 .topBar,
 .bottomBar,
-.reelsBottom {
+.reelsBottom,
+.volumeFloat,
+.fsBottomBar {
   position: fixed;
   z-index: 2147483647;
   box-sizing: border-box;
-  font-family: system-ui, sans-serif;
+  font-family: var(--igw-font);
   color: #fff;
   opacity: 1;
   pointer-events: none;
 }
 
-.controlsRow,
 .scrubber,
 .btn,
+.volumeFloat,
 .volumeSlider,
-.configPanel {
+.fsVolumeSlider,
+.fsLeft,
+.fsRight {
   pointer-events: auto;
 }
 
@@ -22,15 +33,6 @@
   display: flex;
   padding: 10px 14px;
   background: transparent;
-  transition: background 0.18s ease;
-}
-
-.topBar.gradient {
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.6) 0%,
-    rgba(0, 0, 0, 0) 100%
-  );
 }
 
 .reelsBottom {
@@ -117,8 +119,8 @@
   height: 3px;
   background: linear-gradient(
     to right,
-    #ff3040 0%,
-    #ff3040 var(--progress, 0%),
+    var(--igw-primary) 0%,
+    var(--igw-primary) var(--progress, 0%),
     rgba(255, 255, 255, 0.3) var(--progress, 0%),
     rgba(255, 255, 255, 0.3) 100%
   );
@@ -159,53 +161,102 @@
   height: 14px;
 }
 
-.volumeGroup {
+.volumeFloat {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
 }
 
-.volumeGroup:hover .volumeSlider {
-  width: 80px;
-  opacity: 1;
-  transition-delay: 0s;
+.volumeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: rgb(245, 245, 245);
+}
+
+.volumePill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  border-radius: 14px;
+  background: rgba(48, 48, 48, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgb(245, 245, 245);
+  overflow: hidden;
+}
+
+.volumeSliderWrap {
+  position: relative;
+  width: 28px;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
+.volumeFloat:hover .volumeSliderWrap {
+  height: 86px;
+}
+
+.volumeSliderWrap::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  bottom: 8px;
+  width: 6px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: linear-gradient(
+    to top,
+    #fff calc(var(--progress, 0%) - 7px),
+    rgba(255, 255, 255, 0.25) calc(var(--progress, 0%) - 7px)
+  );
+  pointer-events: none;
 }
 
 .volumeSlider {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
   -webkit-appearance: none;
   appearance: none;
-  width: 0;
-  height: 4px;
-  opacity: 0;
-  border-radius: 2px;
-  transition: width 0.2s ease, opacity 0.2s ease;
-  transition-delay: 0.25s;
-  background: linear-gradient(
-    to right,
-    #fff 0%,
-    #fff var(--progress, 0%),
-    rgba(255, 255, 255, 0.3) var(--progress, 0%),
-    rgba(255, 255, 255, 0.3) 100%
-  );
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 28px;
+  height: 66px;
+  margin: 0;
+  background: transparent;
   cursor: pointer;
 }
 
 .volumeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   background: #fff;
+  cursor: grab;
+  transition: transform 0.1s ease;
+}
+
+.volumeSlider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.2);
 }
 
 .volumeSlider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   border: none;
   border-radius: 50%;
   background: #fff;
+  cursor: grab;
+}
+
+.volumeSlider:active::-moz-range-thumb {
+  cursor: grabbing;
 }
 
 .configGroup {
@@ -215,14 +266,104 @@
   flex-shrink: 0;
 }
 
-.configPanel {
-  position: absolute;
-  bottom: 100%;
+/* ───────── Fullscreen YouTube-style layout ───────── */
+
+.fsBottomBar {
+  left: 0;
   right: 0;
-  margin-bottom: 4px;
-  padding: 10px 14px;
-  min-width: 120px;
-  border-radius: 8px;
-  background: rgba(20, 20, 20, 0.95);
-  font-size: 12px;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 60px 16px 8px;
+  background: transparent;
+  transition: opacity 0.18s ease, background 0.18s ease;
+}
+
+.fsBottomBar.gradient {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.75) 35%,
+    rgba(0, 0, 0, 0.35) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.fsBottomBar.fsCursorHidden {
+  cursor: none;
+}
+
+.fsControlsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
+  order: 2;
+  transition: opacity 0.18s ease;
+}
+
+.fsLeft,
+.fsRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fsVolumeGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+}
+
+.fsVolumeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 90px;
+  height: 4px;
+  margin: 0;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #fff 0%,
+    #fff var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) var(--progress, 0%),
+    rgba(255, 255, 255, 0.35) 100%
+  );
+  cursor: pointer;
+}
+
+.fsVolumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: grab;
+}
+
+.fsVolumeSlider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
+.fsVolumeSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  cursor: grab;
+}
+
+.fsTime {
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  margin-left: 8px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
