@@ -1,11 +1,41 @@
 // Finds the video the user is currently watching on the page.
 import { useEffect, useState } from 'react';
 
+// Visible area of `el` after clipping against the window AND every
+// overflow-clipping ancestor. Instagram carousels keep the off-screen slides
+// rendered (translated sideways, not display:none) inside an overflow:hidden
+// track, so their rect can still overlap the window viewport. Clipping against
+// the track collapses those hidden slides to ~0 area.
 function visibleArea(el: HTMLElement): number {
   const r = el.getBoundingClientRect();
-  const visH = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
-  const visW = Math.min(r.right, window.innerWidth) - Math.max(r.left, 0);
-  return Math.max(0, visH) * Math.max(0, visW);
+  let top = r.top;
+  let left = r.left;
+  let bottom = r.bottom;
+  let right = r.right;
+
+  // Clip against window viewport.
+  top = Math.max(top, 0);
+  left = Math.max(left, 0);
+  bottom = Math.min(bottom, window.innerHeight);
+  right = Math.min(right, window.innerWidth);
+
+  // Clip against clipping ancestors (overflow hidden/clip/auto/scroll).
+  let n: HTMLElement | null = el.parentElement;
+  while (n && n !== document.body) {
+    const cs = getComputedStyle(n);
+    const clips =
+      cs.overflowX !== "visible" || cs.overflowY !== "visible";
+    if (clips) {
+      const cr = n.getBoundingClientRect();
+      top = Math.max(top, cr.top);
+      left = Math.max(left, cr.left);
+      bottom = Math.min(bottom, cr.bottom);
+      right = Math.min(right, cr.right);
+    }
+    n = n.parentElement;
+  }
+
+  return Math.max(0, bottom - top) * Math.max(0, right - left);
 }
 
 // Reject hidden carousel siblings (display:none, visibility:hidden, 0-opacity
@@ -35,21 +65,37 @@ export function useActiveVideo(): HTMLVideoElement | null {
     let current: HTMLVideoElement | null = null;
 
     const pick = () => {
-      const vids = Array.from(document.querySelectorAll('video'));
+      const allVids = Array.from(document.querySelectorAll('video'));
+      if (allVids.length === 0) {
+        current = null;
+        setVideo(null);
+        return;
+      }
+
+      // Post overlay opens as a [role="dialog"] over the feed. Constrain
+      // candidates to the topmost dialog so the bar tracks the modal video,
+      // not the feed video still rendered behind it.
+      const dialogs = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="dialog"]'),
+      ).filter(isRendered);
+      const dialog = dialogs.length ? dialogs[dialogs.length - 1] : null;
+      const vids = dialog
+        ? allVids.filter((v) => dialog.contains(v))
+        : allVids;
       if (vids.length === 0) {
         current = null;
         setVideo(null);
         return;
       }
 
-      // Sticky: if current is still rendered and meaningfully visible, keep
-      // it regardless of play state. Pausing should not steal focus to a
-      // sibling carousel slide.
+      // Sticky: keep current if still rendered, meaningfully visible, and
+      // (when a dialog is open) inside that dialog. Otherwise re-pick.
       if (
         current &&
         current.isConnected &&
         isRendered(current) &&
-        visibleArea(current) >= MIN_AREA
+        visibleArea(current) >= MIN_AREA &&
+        (!dialog || dialog.contains(current))
       ) {
         return;
       }

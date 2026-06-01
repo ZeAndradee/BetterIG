@@ -14,22 +14,26 @@ const ICON_PATH_PREFIXES = [
 ];
 
 function isNativeVolumeButton(btn: HTMLElement): boolean {
+  // Skip big wrapper buttons: IG makes the whole reel/video area a
+  // [role="button"] that contains the audio icon deep inside. Matching it
+  // would hide the entire profile/bio overlay. The real mute toggle never
+  // wraps the video or other buttons.
+  if (btn.querySelector('video')) return false;
+  if (btn.querySelectorAll('button, [role="button"]').length > 0) return false;
+
   const label = btn.getAttribute('aria-label') ?? '';
-  const svg = btn.querySelector('svg');
+
+  // Only inspect the button's own icon — a single direct svg, not anything
+  // nested through other content.
+  const svgs = btn.querySelectorAll('svg');
+  const svg = svgs.length === 1 ? svgs[0] : null;
   const titleText = svg?.querySelector('title')?.textContent ?? '';
 
-  if (LABEL_RE.test(label) || LABEL_RE.test(titleText)) return true;
+  if (LABEL_RE.test(label)) return true;
+  if (svg && LABEL_RE.test(titleText)) return true;
 
   const d = svg?.querySelector('path')?.getAttribute('d') ?? '';
   if (d && ICON_PATH_PREFIXES.some((p) => d.startsWith(p))) return true;
-
-  // Fallback: IG-icon-set svg (48x48 viewBox) inside a video container.
-  if (
-    svg?.getAttribute('viewBox') === '0 0 48 48' &&
-    btn.closest('div')?.querySelector('video')
-  ) {
-    return true;
-  }
 
   return false;
 }
@@ -49,9 +53,11 @@ export function useHideNativeVolume(): void {
         'button, [role="button"]',
       );
       candidates.forEach((btn) => {
-        const target = btn.parentElement ?? btn;
-        if (target.hasAttribute(MARK_ATTR)) return;
-        if (isNativeVolumeButton(btn)) target.setAttribute(MARK_ATTR, '');
+        // Mark the button itself, not its parent. IG nests the mute toggle in
+        // a wide overlay div that also holds the profile/bio + tap-to-pause
+        // layer; hiding the parent would kill all three.
+        if (btn.hasAttribute(MARK_ATTR)) return;
+        if (isNativeVolumeButton(btn)) btn.setAttribute(MARK_ATTR, '');
       });
     };
 

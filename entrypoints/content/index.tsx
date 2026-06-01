@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom/client';
 import { VideoControls } from '@/components/VideoControls/VideoControls';
 
 export default defineContentScript({
-  matches: ['*://*.instagram.com/*'],
+  matches: ['https://*.instagram.com/*'],
   cssInjectionMode: 'ui',
   async main(ctx) {
     const ui = await createShadowRootUi(ctx, {

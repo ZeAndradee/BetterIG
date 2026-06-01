@@ -5,10 +5,14 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
+    name: "BetterIG",
+    action: {
+      default_title: "BetterIG",
+    },
     web_accessible_resources: [
       {
         resources: ["fonts/*"],
-        matches: ["*://*.instagram.com/*"],
+        matches: ["https://*.instagram.com/*"],
       },
     ],
   },

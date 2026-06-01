@@ -7,6 +7,7 @@ import { useVideoRect } from "@/hooks/video/useVideoRect";
 import { usePointerInRect } from "@/hooks/video/usePointerInRect";
 import { useVolumeSync, saveVolume } from "@/hooks/video/useVolumeSync";
 import { useHideNativeVolume } from "@/hooks/video/useHideNativeVolume";
+import { useStorySegments } from "@/hooks/video/useStorySegments";
 import { ConfigMenu, SPEEDS } from "./ConfigMenu/ConfigMenu";
 import styles from "./VideoControls.module.css";
 
@@ -113,6 +114,18 @@ export function VideoControls() {
 
   useVolumeSync();
   useHideNativeVolume();
+  const storySegments = useStorySegments();
+
+  // On active-video change (e.g. swiping a carousel), collapse the overlay back
+  // to its resting state. The pause button + gradient shouldn't carry over to
+  // the next video — they re-show only when the user hovers it again.
+  useEffect(() => {
+    setVisible(false);
+    setHoverBar(false);
+    setHoverVolume(false);
+    setConfigOpen(false);
+    setDragging(false);
+  }, [video]);
 
   useEffect(loadInterFont, []);
   useEffect(ensureFullscreenStyle, []);
@@ -229,14 +242,51 @@ export function VideoControls() {
     if (Math.abs(state.currentTime - target) < 0.5) setScrubValue(null);
   }, [scrubValue, dragging, state.currentTime, state.duration]);
 
+  const isReels = window.location.pathname.startsWith("/reels");
+  const isStory = window.location.pathname.startsWith("/stories");
+
+  // A story is "usable" (seekable) once it has a video with layout + metadata.
+  const storyUsableVideo =
+    isStory && !!video && !!rect && rect.width > 0 && state.duration > 0;
+
+  // Stories without a seekable video (image stories, or a video story while its
+  // metadata loads): show the segment bar anyway, anchored to IG's native row,
+  // active slot mirroring IG's own fill. Keeps the bar in a fixed spot and
+  // stops the header from jumping when the native bar is hidden.
+  if (isStory && storySegments && storySegments.count > 0 && !storyUsableVideo) {
+    const seg = storySegments;
+    return (
+      <div ref={rootRef}>
+        <div
+          className={styles.storyTop}
+          style={{ left: seg.left, top: seg.top, width: seg.width }}
+        >
+          <div className={styles.storySegments}>
+            {Array.from({ length: seg.count }).map((_, i) => {
+              const width =
+                i < seg.activeIndex
+                  ? "100%"
+                  : i === seg.activeIndex
+                    ? `${seg.activeProgress}%`
+                    : "0%";
+              return (
+                <div key={i} className={styles.storySeg}>
+                  <div className={styles.storySegFill} style={{ width }} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Wait for video to have layout AND metadata. Otherwise rect can be near
   // (0,0) and duration 0 while the video is still fetching → controls flash
   // at viewport origin with broken scrubber.
   if (!video || !rect || rect.width <= 0 || state.duration <= 0) {
     return <div ref={rootRef} style={{ display: "none" }} />;
   }
-
-  const isReels = window.location.pathname.startsWith("/reels");
 
   const togglePlay = () => {
     if (video.paused || video.ended) video.play();
@@ -353,7 +403,7 @@ export function VideoControls() {
     </div>
   );
 
-  const timestamp = dragging && (
+  const timestamp = (dragging || hoverBar) && (
     <div className={styles.timeDisplay}>
       {formatTime(displayTime)} / {formatTime(state.duration)}
     </div>
@@ -381,16 +431,43 @@ export function VideoControls() {
     />
   );
 
+  // Stories: mirror IG's native segment bar (one slot per story item). The
+  // active slot is our seekable scrubber; earlier slots are full, later empty.
+  const storyBar =
+    storySegments && storySegments.count > 0 ? (
+      <div className={styles.storySegments}>
+        {Array.from({ length: storySegments.count }).map((_, i) => {
+          if (i === storySegments.activeIndex) {
+            return (
+              <div key={i} className={styles.storySegActive}>
+                {scrubber}
+              </div>
+            );
+          }
+          const full = i < storySegments.activeIndex;
+          return (
+            <div key={i} className={styles.storySeg}>
+              <div
+                className={styles.storySegFill}
+                style={{ width: full ? "100%" : "0%" }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      scrubber
+    );
+
   const volumePosition: CSSProperties = {
     left: `${rect.right}px`,
     top: `${rect.bottom}px`,
-    transform: "translate(calc(-100% - 12px), calc(-100% - 12px))",
     ["--progress" as never]: `${volumeLevel * 100}%`,
   };
 
   const volumeControl = (
     <div
-      className={styles.volumeFloat}
+      className={`${styles.volumeFloat} ${visible ? "" : styles.hidden}`}
       style={volumePosition}
       onMouseEnter={() => setHoverVolume(true)}
       onMouseLeave={() => setHoverVolume(false)}
@@ -428,8 +505,17 @@ export function VideoControls() {
     left: `${rect.left}px`,
     top: `${rect.bottom}px`,
     width: `${rect.width}px`,
-    transform: "translateY(-100%)",
   };
+
+  // Anchor the story bar to IG's native row so it sits in the exact same place
+  // for both image and video stories (the video rect can differ from the row).
+  const storyPosition: CSSProperties = storySegments
+    ? {
+        left: `${storySegments.left}px`,
+        top: `${storySegments.top}px`,
+        width: `${storySegments.width}px`,
+      }
+    : topPosition;
 
   if (isFullscreen) {
     const fsControls = (
@@ -522,13 +608,40 @@ export function VideoControls() {
     );
   }
 
+  if (isStory) {
+    // Our scrubber replaces IG's native (desynced) segment bar, so it sits at
+    // the top of the story where that bar lived. Volume reuses the float pill.
+    return (
+      <div ref={rootRef}>
+        <div
+          className={styles.storyTop}
+          style={storyPosition}
+          onMouseEnter={() => setHoverBar(true)}
+          onMouseLeave={() => setHoverBar(false)}
+        >
+          {timestamp}
+          {storyBar}
+        </div>
+        {volumeControl}
+      </div>
+    );
+  }
+
   if (isReels) {
     return (
       <div ref={rootRef}>
-        <div className={styles.topBar} style={topPosition}>
+        <div
+          className={`${styles.topBar} ${visible ? "" : styles.hidden}`}
+          style={topPosition}
+        >
           {renderControls(false)}
         </div>
-        <div className={styles.reelsBottom} style={bottomPosition}>
+        <div
+          className={styles.reelsBottom}
+          style={bottomPosition}
+          onMouseEnter={() => setHoverBar(true)}
+          onMouseLeave={() => setHoverBar(false)}
+        >
           {timestamp}
           {scrubber}
         </div>
@@ -542,6 +655,8 @@ export function VideoControls() {
       <div
         className={`${styles.bottomBar} ${visible ? styles.gradient : ""}`}
         style={bottomPosition}
+        onMouseEnter={() => setHoverBar(true)}
+        onMouseLeave={() => setHoverBar(false)}
       >
         {timestamp}
         {renderControls(true)}
