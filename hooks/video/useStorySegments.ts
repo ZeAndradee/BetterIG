@@ -135,10 +135,15 @@ function read(row: HTMLElement, header: HTMLElement | null): StorySegments {
   };
 }
 
-export function useStorySegments(): StorySegments | null {
+export function useStorySegments(enabled = true): StorySegments | null {
   const [segments, setSegments] = useState<StorySegments | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setSegments(null);
+      return;
+    }
+
     let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement('style');
@@ -196,7 +201,7 @@ export function useStorySegments(): StorySegments | null {
         .querySelectorAll(`[${MARK_ATTR}]`)
         .forEach((el) => el.removeAttribute(MARK_ATTR));
     };
-  }, []);
+  }, [enabled]);
 
   return segments;
 }

@@ -1,4 +1,4 @@
-import { ChevronDown, Gauge, Maximize } from "lucide-react";
+import { ChevronDown, Gauge, Maximize, Keyboard } from "lucide-react";
 import { Toggle } from "@/components/Toggle/Toggle";
 import styles from "./ConfigMenu.module.css";
 
@@ -13,6 +13,7 @@ interface Props {
   onToggleAutoscroll: () => void;
   onCycleSpeed: () => void;
   onFullscreen: () => void;
+  onShowShortcuts: () => void;
 }
 
 export function ConfigMenu({
@@ -23,6 +24,7 @@ export function ConfigMenu({
   onToggleAutoscroll,
   onCycleSpeed,
   onFullscreen,
+  onShowShortcuts,
 }: Props) {
   return (
     <div
@@ -52,6 +54,13 @@ export function ConfigMenu({
           <span className={styles.label}>Fullscreen</span>
         </button>
       )}
+
+      <button className={styles.row} onClick={onShowShortcuts}>
+        <span className={styles.icon}>
+          <Keyboard size={20} strokeWidth={2} />
+        </span>
+        <span className={styles.label}>Shortcuts</span>
+      </button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "BetterIG",
+    permissions: ["storage"],
     action: {
       default_title: "BetterIG",
     },

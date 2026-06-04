@@ -1,21 +1,10 @@
-:global(:host) {
-  --igw-primary: #ff3040;
-  --igw-font: "Inter Variable", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  font-family: var(--igw-font);
-}
-
 .topBar,
 .bottomBar,
 .reelsBottom,
 .storyTop,
-.volumeFloat,
-.fsBottomBar {
+.volumeFloat {
   position: fixed;
   z-index: 2147483647;
-  box-sizing: border-box;
-  font-family: var(--igw-font);
-  color: #fff;
   opacity: 1;
   pointer-events: none;
 }
@@ -23,10 +12,7 @@
 .scrubber,
 .btn,
 .volumeFloat,
-.volumeSlider,
-.fsVolumeSlider,
-.fsLeft,
-.fsRight {
+.volumeSlider {
   pointer-events: auto;
 }
 
@@ -34,7 +20,9 @@
   display: flex;
   padding: 10px 14px;
   background: transparent;
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
 }
 
 .topBar.hidden {
@@ -75,11 +63,13 @@
 }
 
 .storySeg {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 2px;
   height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.35);
   overflow: hidden;
+  transition: min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .storySegFull {
@@ -93,16 +83,28 @@
   border-radius: 2px;
 }
 
-/* Active slot hosts the seekable scrubber; it stretches to fill the slot. */
+/* Active slot hosts the seekable scrubber. It keeps a usable min width so that
+   with many stories the inactive slots compress instead of the scrubber turning
+   into an ungrabbable sliver — the active story stays seekable second-by-second. */
 .storySegActive {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 72px;
   display: flex;
   align-items: center;
+  height: 3px;
   pointer-events: auto;
+  transition: min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .storySegActive .scrubber {
+  display: block;
   width: 100%;
+  height: 3px;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
+  vertical-align: middle;
+  align-self: center;
 }
 
 .bottomBar {
@@ -188,6 +190,18 @@
   }
 }
 
+.speedIndicator {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  animation: igwFadeUp 0.2s ease;
+}
+
 .scrubber {
   -webkit-appearance: none;
   appearance: none;
@@ -216,7 +230,9 @@
   height: 0;
   border-radius: 50%;
   background: #fff;
-  transition: width 0.12s ease, height 0.12s ease;
+  transition:
+    width 0.12s ease,
+    height 0.12s ease;
 }
 
 .scrubber:hover::-webkit-slider-thumb {
@@ -230,7 +246,9 @@
   border: none;
   border-radius: 50%;
   background: #fff;
-  transition: width 0.12s ease, height 0.12s ease;
+  transition:
+    width 0.12s ease,
+    height 0.12s ease;
 }
 
 .scrubber:hover::-moz-range-thumb {
@@ -241,13 +259,19 @@
 .volumeFloat {
   display: flex;
   transform: translate(calc(-100% - 12px), calc(-100% - 12px));
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
 }
 
 .volumeFloat.hidden {
   opacity: 0;
   transform: translate(calc(-100% - 12px), calc(-100% - 4px));
   pointer-events: none;
+}
+
+.volumeFloat.story {
+  transform: translate(calc(-100% - 22px), calc(-100% - 64px));
 }
 
 .volumeBtn {
@@ -349,106 +373,4 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-}
-
-/* ───────── Fullscreen YouTube-style layout ───────── */
-
-.fsBottomBar {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 60px 16px 8px;
-  background: transparent;
-  transition: background 0.18s ease;
-}
-
-.fsBottomBar.gradient {
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.75) 35%,
-    rgba(0, 0, 0, 0.35) 70%,
-    rgba(0, 0, 0, 0) 100%
-  );
-}
-
-.fsBottomBar.fsCursorHidden {
-  cursor: none;
-}
-
-.fsControlsRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0 4px;
-  order: 2;
-  transition: opacity 0.18s ease;
-}
-
-.fsLeft,
-.fsRight {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.fsVolumeGroup {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-right: 8px;
-}
-
-.fsVolumeSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 90px;
-  height: 4px;
-  margin: 0;
-  border-radius: 2px;
-  background: linear-gradient(
-    to right,
-    #fff 0%,
-    #fff var(--progress, 0%),
-    rgba(255, 255, 255, 0.35) var(--progress, 0%),
-    rgba(255, 255, 255, 0.35) 100%
-  );
-  cursor: pointer;
-}
-
-.fsVolumeSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: grab;
-}
-
-.fsVolumeSlider:active::-webkit-slider-thumb {
-  cursor: grabbing;
-}
-
-.fsVolumeSlider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border: none;
-  border-radius: 50%;
-  background: #fff;
-  cursor: grab;
-}
-
-.fsTime {
-  font-size: 14px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  margin-left: 8px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
 }

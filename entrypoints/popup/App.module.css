@@ -1,0 +1,229 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.tag {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: -0.01em;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.heroIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--igw-primary);
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.heroValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.heroLabel {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: -0.005em;
+}
+
+.viewToggle {
+  display: inline-flex;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 9px;
+  background: #1c1d21;
+}
+
+.viewBtn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.viewBtn:hover {
+  color: #fff;
+}
+
+.viewBtnActive {
+  background: var(--igw-primary);
+  color: #fff;
+}
+
+.viewBtnActive:hover {
+  color: #fff;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  border-radius: 12px;
+  background: #1c1d21;
+  padding: 4px 14px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.rowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.rowIconOn {
+  color: var(--igw-primary);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.rowDesc {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: -0.005em;
+}
+
+.metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.metric {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: -0.005em;
+}
+
+.metricValue {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--igw-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.metricLabel {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: center;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.42);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.reset:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}

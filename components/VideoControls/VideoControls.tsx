@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
-import { Volume2, VolumeX, Settings, Play, Pause, Minimize } from "lucide-react";
+import { Volume2, VolumeX, Settings, Play, Pause, FastForward, Rewind } from "lucide-react";
 import { useActiveVideo } from "@/hooks/video/useActiveVideo";
 import { useVideoState } from "@/hooks/video/useVideoState";
 import { useVideoRect } from "@/hooks/video/useVideoRect";
@@ -8,7 +8,10 @@ import { usePointerInRect } from "@/hooks/video/usePointerInRect";
 import { useVolumeSync, saveVolume } from "@/hooks/video/useVolumeSync";
 import { useHideNativeVolume } from "@/hooks/video/useHideNativeVolume";
 import { useStorySegments } from "@/hooks/video/useStorySegments";
+import { useVideoShortcuts } from "@/hooks/video/useVideoShortcuts";
+import { bumpStat } from "@/utils/store";
 import { ConfigMenu, SPEEDS } from "./ConfigMenu/ConfigMenu";
+import { ShortcutsModal } from "./ShortcutsModal/ShortcutsModal";
 import styles from "./VideoControls.module.css";
 
 const HIDE_DELAY = 600;
@@ -90,7 +93,12 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-export function VideoControls() {
+interface Props {
+  videoEnabled: boolean;
+  storiesEnabled: boolean;
+}
+
+export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
   const video = useActiveVideo();
   const state = useVideoState(video);
   const rect = useVideoRect(video);
@@ -98,6 +106,7 @@ export function VideoControls() {
   const [hoverBar, setHoverBar] = useState(false);
   const [hoverVolume, setHoverVolume] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [visible, setVisible] = useState(false);
   const [scrubValue, setScrubValue] = useState<number | null>(null);
@@ -107,6 +116,8 @@ export function VideoControls() {
     () => typeof document !== "undefined" && !!document.fullscreenElement,
   );
   const [mouseActive, setMouseActive] = useState(true);
+  const [indicator, setIndicator] = useState<"hold" | "forward" | "rewind" | null>(null);
+  const indicatorTimer = useRef<number | undefined>(undefined);
   const seekTimer = useRef<number | undefined>(undefined);
   const pendingSeek = useRef<number | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -114,7 +125,33 @@ export function VideoControls() {
 
   useVolumeSync();
   useHideNativeVolume();
-  const storySegments = useStorySegments();
+  const storySegments = useStorySegments(storiesEnabled);
+
+  const pathIsReels = window.location.pathname.startsWith("/reels");
+  const pathIsStory = window.location.pathname.startsWith("/stories");
+  const flashIndicator = (kind: "forward" | "rewind") => {
+    setIndicator(kind);
+    window.clearTimeout(indicatorTimer.current);
+    indicatorTimer.current = window.setTimeout(() => setIndicator(null), 700);
+  };
+  useVideoShortcuts({
+    video,
+    enabled: (pathIsReels && videoEnabled) || (pathIsStory && storiesEnabled),
+    isReels: pathIsReels,
+    isStory: pathIsStory,
+    speed,
+    onHoldStart: () => {
+      window.clearTimeout(indicatorTimer.current);
+      setIndicator("hold");
+    },
+    onHoldEnd: () => {
+      window.clearTimeout(indicatorTimer.current);
+      setIndicator(null);
+    },
+    onSeek: flashIndicator,
+  });
+
+  useEffect(() => () => window.clearTimeout(indicatorTimer.current), []);
 
   // On active-video change (e.g. swiping a carousel), collapse the overlay back
   // to its resting state. The pause button + gradient shouldn't carry over to
@@ -152,6 +189,67 @@ export function VideoControls() {
     document.addEventListener("ended", onEnded, true);
     return () => document.removeEventListener("ended", onEnded, true);
   }, [autoscroll]);
+
+  // Counter: reels watched, counted once the user sees ≥60% of the reel. Reset
+  // the latch when the active video changes so the next reel can count.
+  const reelCounted = useRef(false);
+  useEffect(() => {
+    reelCounted.current = false;
+  }, [video]);
+  useEffect(() => {
+    if (!videoEnabled || reelCounted.current) return;
+    if (!pathIsReels || state.duration <= 0) return;
+    if (state.currentTime / state.duration >= 0.6) {
+      reelCounted.current = true;
+      bumpStat("reelsWatched");
+    }
+  }, [videoEnabled, pathIsReels, state.currentTime, state.duration]);
+
+  // Counter: total time viewed in reels (real seconds while a reel plays).
+  // Accrue seconds in memory and flush to storage every 15s (and on
+  // pause/nav/unmount) instead of writing once per second.
+  useEffect(() => {
+    if (!videoEnabled || !state.playing || !pathIsReels) return;
+    let pending = 0;
+    const flush = () => {
+      if (pending > 0) {
+        bumpStat("reelsTime", pending);
+        pending = 0;
+      }
+    };
+    const id = window.setInterval(() => {
+      pending += 1;
+      if (pending >= 15) flush();
+    }, 1000);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [videoEnabled, state.playing, pathIsReels]);
+
+  // Counter: stories viewed (each time the active segment advances forward).
+  const prevStoryIndex = useRef<number | null>(null);
+  useEffect(() => {
+    if (!storiesEnabled || !storySegments) {
+      prevStoryIndex.current = null;
+      return;
+    }
+    const idx = storySegments.activeIndex;
+    const prev = prevStoryIndex.current;
+    if (prev == null) {
+      prevStoryIndex.current = idx;
+      bumpStat("storiesViewed");
+      return;
+    }
+    if (idx > prev) {
+      bumpStat("storiesViewed", idx - prev);
+      prevStoryIndex.current = idx;
+    } else if (idx < prev) {
+      prevStoryIndex.current = idx;
+    }
+  }, [storiesEnabled, storySegments?.activeIndex]);
 
   // Close config dropdown on outside click (composedPath handles shadow DOM).
   useEffect(() => {
@@ -245,65 +343,61 @@ export function VideoControls() {
   const isReels = window.location.pathname.startsWith("/reels");
   const isStory = window.location.pathname.startsWith("/stories");
 
+  if (isStory && !storiesEnabled)
+    return <div ref={rootRef} style={{ display: "none" }} />;
+  if (!isStory && !videoEnabled)
+    return <div ref={rootRef} style={{ display: "none" }} />;
+
   // A story is "usable" (seekable) once it has a video with layout + metadata.
   const storyUsableVideo =
     isStory && !!video && !!rect && rect.width > 0 && state.duration > 0;
 
-  // Stories without a seekable video (image stories, or a video story while its
-  // metadata loads): show the segment bar anyway, anchored to IG's native row,
-  // active slot mirroring IG's own fill. Keeps the bar in a fixed spot and
-  // stops the header from jumping when the native bar is hidden.
-  if (isStory && storySegments && storySegments.count > 0 && !storyUsableVideo) {
-    const seg = storySegments;
-    return (
-      <div ref={rootRef}>
-        <div
-          className={styles.storyTop}
-          style={{ left: seg.left, top: seg.top, width: seg.width }}
-        >
-          <div className={styles.storySegments}>
-            {Array.from({ length: seg.count }).map((_, i) => {
-              const width =
-                i < seg.activeIndex
-                  ? "100%"
-                  : i === seg.activeIndex
-                    ? `${seg.activeProgress}%`
-                    : "0%";
-              return (
-                <div key={i} className={styles.storySeg}>
-                  <div className={styles.storySegFill} style={{ width }} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // A story with segments always renders the same bar subtree, whether or not
+  // its video is seekable yet (image stories, or a video story still loading
+  // metadata). Keeping one persistent subtree — instead of swapping between an
+  // "image bar" return and a "video bar" return — is what lets the per-segment
+  // nodes keep their identity across a story advance, so the stretch/unstretch
+  // of the active slot animates instead of cutting.
+  const storyHasBar = isStory && !!storySegments && storySegments.count > 0;
 
   // Wait for video to have layout AND metadata. Otherwise rect can be near
   // (0,0) and duration 0 while the video is still fetching → controls flash
-  // at viewport origin with broken scrubber.
-  if (!video || !rect || rect.width <= 0 || state.duration <= 0) {
+  // at viewport origin with broken scrubber. Stories with a bar skip this and
+  // render via the unified story return below (anchored to IG's native row).
+  if (!storyHasBar && (!video || !rect || rect.width <= 0 || state.duration <= 0)) {
     return <div ref={rootRef} style={{ display: "none" }} />;
   }
 
+  // Every user interaction with the player counts toward the active surface's
+  // interaction tally: stories → storyActions, reels/feed video → videoActions.
+  const bumpInteraction = () => {
+    if (isStory) {
+      if (storiesEnabled) bumpStat("storyActions");
+    } else if (videoEnabled) {
+      bumpStat("videoActions");
+    }
+  };
+
   const togglePlay = () => {
+    if (!video) return;
     if (video.paused || video.ended) video.play();
     else video.pause();
+    bumpInteraction();
   };
 
   const toggleMute = () => {
+    if (!video) return;
     const next = !video.muted;
     saveVolume(video.volume, next);
     video.muted = next;
+    bumpInteraction();
   };
 
   const flushSeek = () => {
     window.clearTimeout(seekTimer.current);
     seekTimer.current = undefined;
     const p = pendingSeek.current;
-    if (p != null && state.duration > 0) {
+    if (video && p != null && state.duration > 0) {
       video.currentTime = (p / 100) * state.duration;
     }
     pendingSeek.current = null;
@@ -318,6 +412,7 @@ export function VideoControls() {
   };
 
   const changeVolume = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!video) return;
     const value = Number(e.target.value);
     saveVolume(value, value === 0);
     video.volume = value;
@@ -334,16 +429,18 @@ export function VideoControls() {
   const volumeLevel = state.muted ? 0 : state.volume;
 
   const toggleFullscreen = () => {
+    if (!video) return;
     if (document.fullscreenElement) {
       document.exitFullscreen();
       return;
     }
-    // On reels, fullscreen the scroll container so autoscroll can swap the
-    // visible reel inside the same fullscreen surface. Elsewhere, fullscreen
-    // the video's parent (so our overlay sits on top of the video).
+    // On reels, fullscreen the whole page so it's the same reels UI (top
+    // controls, action buttons, comments, autoscroll) just filling the screen.
+    // Elsewhere, fullscreen the video's parent so our overlay sits on the video.
     const fallback = (video.parentElement as HTMLElement | null) ?? video;
-    const target = isReels ? (findScroller(video) ?? fallback) : fallback;
+    const target = isReels ? document.documentElement : fallback;
     target.requestFullscreen?.();
+    bumpInteraction();
   };
 
   const cycleSpeed = () => {
@@ -351,13 +448,15 @@ export function VideoControls() {
     const next = SPEEDS[(idx + 1) % SPEEDS.length];
     setSpeed(next);
     saveSpeed(next);
-    video.playbackRate = next;
+    if (video) video.playbackRate = next;
+    bumpInteraction();
   };
 
   const toggleAutoscroll = () => {
     const next = !autoscroll;
     setAutoscroll(next);
     saveAutoscroll(next);
+    bumpInteraction();
   };
 
   const renderControls = (expandUp: boolean) => (
@@ -396,6 +495,10 @@ export function VideoControls() {
               onToggleAutoscroll={toggleAutoscroll}
               onCycleSpeed={cycleSpeed}
               onFullscreen={toggleFullscreen}
+              onShowShortcuts={() => {
+                setConfigOpen(false);
+                setShortcutsOpen(true);
+              }}
             />
           )}
         </div>
@@ -403,10 +506,28 @@ export function VideoControls() {
     </div>
   );
 
-  const timestamp = (dragging || hoverBar) && (
+  const timestamp = !indicator && (dragging || hoverBar) && (
     <div className={styles.timeDisplay}>
       {formatTime(displayTime)} / {formatTime(state.duration)}
     </div>
+  );
+
+  const indicatorEl = indicator && (
+    <div className={styles.speedIndicator}>
+      {indicator === "rewind" ? (
+        <Rewind size={16} fill="currentColor" />
+      ) : (
+        <FastForward size={16} fill="currentColor" />
+      )}
+      <span>{indicator === "hold" ? "2x" : "5s"}</span>
+    </div>
+  );
+
+  const topInfo = (
+    <>
+      {indicatorEl}
+      {timestamp}
+    </>
   );
 
   const scrubber = (
@@ -422,6 +543,7 @@ export function VideoControls() {
       onPointerUp={() => {
         setDragging(false);
         flushSeek();
+        bumpInteraction();
       }}
       onPointerCancel={() => {
         setDragging(false);
@@ -438,9 +560,22 @@ export function VideoControls() {
       <div className={styles.storySegments}>
         {Array.from({ length: storySegments.count }).map((_, i) => {
           if (i === storySegments.activeIndex) {
+            // Active slot keeps the same class whether it hosts the seekable
+            // scrubber (video ready) or just mirrors IG's fill (image story /
+            // still loading), so the node — and its width transition — survive
+            // the swap between those two states on every story advance.
             return (
               <div key={i} className={styles.storySegActive}>
-                {scrubber}
+                {storyUsableVideo ? (
+                  scrubber
+                ) : (
+                  <div className={styles.storySeg}>
+                    <div
+                      className={styles.storySegFill}
+                      style={{ width: `${storySegments.activeProgress}%` }}
+                    />
+                  </div>
+                )}
               </div>
             );
           }
@@ -460,14 +595,16 @@ export function VideoControls() {
     );
 
   const volumePosition: CSSProperties = {
-    left: `${rect.right}px`,
-    top: `${rect.bottom}px`,
+    left: `${rect?.right ?? 0}px`,
+    top: `${rect?.bottom ?? 0}px`,
     ["--progress" as never]: `${volumeLevel * 100}%`,
   };
 
   const volumeControl = (
     <div
-      className={`${styles.volumeFloat} ${visible ? "" : styles.hidden}`}
+      className={`${styles.volumeFloat} ${isStory ? styles.story : ""} ${
+        visible ? "" : styles.hidden
+      }`}
       style={volumePosition}
       onMouseEnter={() => setHoverVolume(true)}
       onMouseLeave={() => setHoverVolume(false)}
@@ -496,15 +633,15 @@ export function VideoControls() {
   );
 
   const topPosition: CSSProperties = {
-    left: `${rect.left}px`,
-    top: `${rect.top}px`,
-    width: `${rect.width}px`,
+    left: `${rect?.left ?? 0}px`,
+    top: `${rect?.top ?? 0}px`,
+    width: `${rect?.width ?? 0}px`,
   };
 
   const bottomPosition: CSSProperties = {
-    left: `${rect.left}px`,
-    top: `${rect.bottom}px`,
-    width: `${rect.width}px`,
+    left: `${rect?.left ?? 0}px`,
+    top: `${rect?.bottom ?? 0}px`,
+    width: `${rect?.width ?? 0}px`,
   };
 
   // Anchor the story bar to IG's native row so it sits in the exact same place
@@ -517,97 +654,6 @@ export function VideoControls() {
       }
     : topPosition;
 
-  if (isFullscreen) {
-    const fsControls = (
-      <div
-        className={`${styles.fsControlsRow} ${visible ? "" : styles.hidden}`}
-        onMouseEnter={() => setHoverBar(true)}
-        onMouseLeave={() => setHoverBar(false)}
-      >
-        <div className={styles.fsLeft}>
-          <button
-            className={styles.btn}
-            onClick={togglePlay}
-            aria-label="Play/Pause"
-          >
-            {state.playing ? <Pause size={24} /> : <Play size={24} />}
-          </button>
-
-          <div
-            className={styles.fsVolumeGroup}
-            onMouseEnter={() => setHoverVolume(true)}
-            onMouseLeave={() => setHoverVolume(false)}
-          >
-            <button
-              className={styles.btn}
-              onClick={toggleMute}
-              aria-label="Mute/Unmute"
-            >
-              {volumeLevel === 0 ? <VolumeX size={22} /> : <Volume2 size={22} />}
-            </button>
-            <input
-              className={styles.fsVolumeSlider}
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volumeLevel}
-              onChange={changeVolume}
-              style={{ ["--progress" as never]: `${volumeLevel * 100}%` }}
-              aria-label="Volume"
-            />
-          </div>
-
-          <div className={styles.fsTime}>
-            {formatTime(displayTime)} / {formatTime(state.duration)}
-          </div>
-        </div>
-
-        <div className={styles.fsRight}>
-          <div className={styles.configGroup} ref={configGroupRef}>
-            <button
-              className={styles.btn}
-              onClick={() => setConfigOpen((open) => !open)}
-              aria-label="Settings"
-            >
-              <Settings size={22} />
-            </button>
-            {configOpen && (
-              <ConfigMenu
-                expandUp={true}
-                autoscroll={autoscroll}
-                speed={speed}
-                showFullscreen={false}
-                onToggleAutoscroll={toggleAutoscroll}
-                onCycleSpeed={cycleSpeed}
-                onFullscreen={toggleFullscreen}
-              />
-            )}
-          </div>
-          <button
-            className={styles.btn}
-            onClick={toggleFullscreen}
-            aria-label="Exit fullscreen"
-          >
-            <Minimize size={22} />
-          </button>
-        </div>
-      </div>
-    );
-
-    return (
-      <div
-        ref={rootRef}
-        className={`${styles.fsBottomBar} ${visible ? styles.gradient : ""} ${
-          visible ? "" : styles.fsCursorHidden
-        }`}
-      >
-        {fsControls}
-        {scrubber}
-      </div>
-    );
-  }
-
   if (isStory) {
     // Our scrubber replaces IG's native (desynced) segment bar, so it sits at
     // the top of the story where that bar lived. Volume reuses the float pill.
@@ -619,10 +665,10 @@ export function VideoControls() {
           onMouseEnter={() => setHoverBar(true)}
           onMouseLeave={() => setHoverBar(false)}
         >
-          {timestamp}
+          {storyUsableVideo && topInfo}
           {storyBar}
         </div>
-        {volumeControl}
+        {storyUsableVideo && volumeControl}
       </div>
     );
   }
@@ -642,10 +688,13 @@ export function VideoControls() {
           onMouseEnter={() => setHoverBar(true)}
           onMouseLeave={() => setHoverBar(false)}
         >
-          {timestamp}
+          {topInfo}
           {scrubber}
         </div>
         {volumeControl}
+        {shortcutsOpen && (
+          <ShortcutsModal onClose={() => setShortcutsOpen(false)} />
+        )}
       </div>
     );
   }
@@ -658,7 +707,7 @@ export function VideoControls() {
         onMouseEnter={() => setHoverBar(true)}
         onMouseLeave={() => setHoverBar(false)}
       >
-        {timestamp}
+        {topInfo}
         {renderControls(true)}
         {scrubber}
       </div>

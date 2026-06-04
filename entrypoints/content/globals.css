@@ -1,0 +1,26 @@
+:host {
+  --igw-primary: #ff3040;
+  --igw-font:
+    "Inter Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+:host,
+:host * {
+  font-family: var(--igw-font);
+  font-feature-settings:
+    "calt" 1,
+    "cv02" 1,
+    "cv03" 1,
+    "cv04" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:host {
+  color: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}

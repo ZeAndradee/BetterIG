@@ -68,8 +68,14 @@ export function useVideoState(video: HTMLVideoElement | null): VideoState {
 
     const sync = () => commit(read());
 
-    const tick = () => {
-      commit(read());
+    // rAF drives smooth time, but committing every frame re-renders the whole
+    // overlay ~60Hz. Throttle the time-only path to ~10Hz; events stay instant.
+    let lastCommit = 0;
+    const tick = (now: number) => {
+      if (now - lastCommit >= 100) {
+        lastCommit = now;
+        commit(read());
+      }
       raf = requestAnimationFrame(tick);
     };
 

@@ -13,16 +13,8 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-family: var(--igw-font);
   font-size: 0.9375rem;
   font-weight: 500;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings:
-    "calt" 1,
-    "cv02" 1,
-    "cv03" 1,
-    "cv04" 1;
 }
 
 .expandUp {
