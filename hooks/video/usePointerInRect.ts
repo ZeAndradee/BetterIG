@@ -1,4 +1,3 @@
-// Tells whether the mouse pointer is inside the given rectangle.
 import { useEffect, useState } from 'react';
 
 export function usePointerInRect(rect: DOMRect | null): boolean {

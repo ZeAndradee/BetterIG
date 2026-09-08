@@ -1,11 +1,5 @@
-// Finds the video the user is currently watching on the page.
 import { useEffect, useState } from 'react';
 
-// Visible area of `el` after clipping against the window AND every
-// overflow-clipping ancestor. Instagram carousels keep the off-screen slides
-// rendered (translated sideways, not display:none) inside an overflow:hidden
-// track, so their rect can still overlap the window viewport. Clipping against
-// the track collapses those hidden slides to ~0 area.
 function visibleArea(el: HTMLElement): number {
   const r = el.getBoundingClientRect();
   let top = r.top;
@@ -13,13 +7,11 @@ function visibleArea(el: HTMLElement): number {
   let bottom = r.bottom;
   let right = r.right;
 
-  // Clip against window viewport.
   top = Math.max(top, 0);
   left = Math.max(left, 0);
   bottom = Math.min(bottom, window.innerHeight);
   right = Math.min(right, window.innerWidth);
 
-  // Clip against clipping ancestors (overflow hidden/clip/auto/scroll).
   let n: HTMLElement | null = el.parentElement;
   while (n && n !== document.body) {
     const cs = getComputedStyle(n);
@@ -38,8 +30,6 @@ function visibleArea(el: HTMLElement): number {
   return Math.max(0, bottom - top) * Math.max(0, right - left);
 }
 
-// Reject hidden carousel siblings (display:none, visibility:hidden, 0-opacity
-// ancestor, etc). `checkVisibility` covers all of these.
 function isRendered(el: HTMLElement): boolean {
   const anyEl = el as HTMLElement & {
     checkVisibility?: (opts?: {
@@ -54,9 +44,7 @@ function isRendered(el: HTMLElement): boolean {
   return cs.visibility !== 'hidden' && cs.display !== 'none' && parseFloat(cs.opacity) > 0;
 }
 
-// Minimum visible area (px²) to even consider a video. Filters out the
-// adjacent carousel slide peeking by a few pixels.
-const MIN_AREA = 40000; // ~200x200
+const MIN_AREA = 40000;
 
 export function useActiveVideo(): HTMLVideoElement | null {
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
@@ -72,9 +60,6 @@ export function useActiveVideo(): HTMLVideoElement | null {
         return;
       }
 
-      // Post overlay opens as a [role="dialog"] over the feed. Constrain
-      // candidates to the topmost dialog so the bar tracks the modal video,
-      // not the feed video still rendered behind it.
       const dialogs = Array.from(
         document.querySelectorAll<HTMLElement>('[role="dialog"]'),
       ).filter(isRendered);
@@ -88,8 +73,22 @@ export function useActiveVideo(): HTMLVideoElement | null {
         return;
       }
 
-      // Sticky: keep current if still rendered, meaningfully visible, and
-      // (when a dialog is open) inside that dialog. Otherwise re-pick.
+      const playing = vids.find(
+        (v) =>
+          isRendered(v) &&
+          !v.paused &&
+          !v.ended &&
+          v.readyState > 2 &&
+          visibleArea(v) >= MIN_AREA,
+      );
+      if (playing) {
+        if (playing !== current) {
+          current = playing;
+          setVideo(playing);
+        }
+        return;
+      }
+
       if (
         current &&
         current.isConnected &&
@@ -106,10 +105,8 @@ export function useActiveVideo(): HTMLVideoElement | null {
         if (!isRendered(v)) continue;
         const area = visibleArea(v);
         if (area < MIN_AREA) continue;
-        const playing = !v.paused && !v.ended && v.readyState > 2;
-        const score = area * (playing ? 4 : 1);
-        if (score > bestScore) {
-          bestScore = score;
+        if (area > bestScore) {
+          bestScore = area;
           best = v;
         }
       }

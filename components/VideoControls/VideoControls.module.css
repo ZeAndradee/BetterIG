@@ -1,8 +1,7 @@
 .topBar,
 .bottomBar,
 .reelsBottom,
-.storyTop,
-.volumeFloat {
+.storyTop {
   position: fixed;
   z-index: 2147483647;
   opacity: 1;
@@ -10,9 +9,7 @@
 }
 
 .scrubber,
-.btn,
-.volumeFloat,
-.volumeSlider {
+.btn {
   pointer-events: auto;
 }
 
@@ -38,28 +35,23 @@
   transform: translateY(-100%);
 }
 
-/* Stories: scrubber pinned to the top of the story, where IG's (now hidden)
-   segment bar used to sit. Always visible — it is the story's progress bar. */
 .storyTop {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   gap: 6px;
   padding: 0;
-  /* Fixed height + bottom-aligned content so the scrubber growing on hover (or
-     the timestamp appearing) can't change the box height — otherwise the
-     translateY anchor below would shift and the bar would flicker under the
-     cursor. The bar stays pinned 8px above the header. */
   height: 34px;
   transform: translateY(calc(-100% - 8px));
 }
 
-/* One slot per story item, mirroring IG's native segment bar. */
 .storySegments {
   display: flex;
   align-items: center;
   gap: 3px;
   width: 100%;
+  box-sizing: border-box;
+  padding: 0 8px 0 0px;
 }
 
 .storySeg {
@@ -76,16 +68,12 @@
   background: #fff;
 }
 
-/* Inner fill for image-story segments (mirrors IG's native fill width). */
 .storySegFill {
   height: 100%;
   background: #fff;
   border-radius: 2px;
 }
 
-/* Active slot hosts the seekable scrubber. It keeps a usable min width so that
-   with many stories the inactive slots compress instead of the scrubber turning
-   into an ungrabbable sliver — the active story stays seekable second-by-second. */
 .storySegActive {
   flex: 1 1 auto;
   min-width: 72px;
@@ -111,26 +99,48 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 60px 0 0;
+  padding: 0;
   background: transparent;
   transform: translateY(-100%);
-  transition: background 0.18s ease;
 }
 
-.bottomBar.gradient {
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.75) 35%,
-    rgba(0, 0, 0, 0.35) 70%,
-    rgba(0, 0, 0, 0) 100%
-  );
+.centerPlay {
+  position: fixed;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #273034;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s ease;
+}
+
+.centerPlay:hover {
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.centerPlay.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .controlsRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   box-sizing: border-box;
   width: 100%;
   padding: 0 4px;
@@ -144,12 +154,6 @@
 .hidden {
   opacity: 0;
   pointer-events: none;
-}
-
-.group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .btn {
@@ -254,118 +258,6 @@
 .scrubber:hover::-moz-range-thumb {
   width: 14px;
   height: 14px;
-}
-
-.volumeFloat {
-  display: flex;
-  transform: translate(calc(-100% - 12px), calc(-100% - 12px));
-  transition:
-    opacity 0.22s ease,
-    transform 0.22s ease;
-}
-
-.volumeFloat.hidden {
-  opacity: 0;
-  transform: translate(calc(-100% - 12px), calc(-100% - 4px));
-  pointer-events: none;
-}
-
-.volumeFloat.story {
-  transform: translate(calc(-100% - 22px), calc(-100% - 64px));
-}
-
-.volumeBtn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  color: rgb(245, 245, 245);
-}
-
-.volumePill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 28px;
-  border-radius: 14px;
-  background: rgba(48, 48, 48, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: rgb(245, 245, 245);
-  overflow: hidden;
-}
-
-.volumeSliderWrap {
-  position: relative;
-  width: 28px;
-  height: 0;
-  overflow: hidden;
-  transition: height 0.2s ease;
-}
-
-.volumeFloat:hover .volumeSliderWrap {
-  height: 86px;
-}
-
-.volumeSliderWrap::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 12px;
-  bottom: 8px;
-  width: 6px;
-  transform: translateX(-50%);
-  border-radius: 3px;
-  background: linear-gradient(
-    to top,
-    #fff calc(var(--progress, 0%) - 7px),
-    rgba(255, 255, 255, 0.25) calc(var(--progress, 0%) - 7px)
-  );
-  pointer-events: none;
-}
-
-.volumeSlider {
-  position: absolute;
-  left: 50%;
-  top: 12px;
-  transform: translateX(-50%);
-  -webkit-appearance: none;
-  appearance: none;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  width: 28px;
-  height: 66px;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.volumeSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: grab;
-  transition: transform 0.1s ease;
-}
-
-.volumeSlider:active::-webkit-slider-thumb {
-  cursor: grabbing;
-  transform: scale(1.2);
-}
-
-.volumeSlider::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
-  border: none;
-  border-radius: 50%;
-  background: #fff;
-  cursor: grab;
-}
-
-.volumeSlider:active::-moz-range-thumb {
-  cursor: grabbing;
 }
 
 .configGroup {

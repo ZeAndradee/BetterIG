@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, Clapperboard, Clock, RotateCcw } from "lucide-react";
+import { RotateCcw, AlertTriangle } from "lucide-react";
 import {
   useFlags,
   useStats,
@@ -35,7 +35,6 @@ interface Metric {
 
 interface FeatureDef {
   key: keyof ReturnType<typeof useFlags>;
-  icon: React.ReactNode;
   label: string;
   desc: string;
   metrics: [Metric, Metric];
@@ -44,7 +43,6 @@ interface FeatureDef {
 const FEATURES: FeatureDef[] = [
   {
     key: "video",
-    icon: <Play size={18} strokeWidth={2.4} />,
     label: "Video Player",
     desc: "Controls on reels & feed videos",
     metrics: [
@@ -54,9 +52,8 @@ const FEATURES: FeatureDef[] = [
   },
   {
     key: "stories",
-    icon: <Clapperboard size={18} strokeWidth={2.2} />,
     label: "Stories Controls",
-    desc: "Seekable bar & volume on stories",
+    desc: "Seekable bar on stories",
     metrics: [
       { key: "storiesViewed", label: "stories viewed" },
       { key: "storyActions", label: "interactions" },
@@ -71,33 +68,80 @@ export function App() {
   const totalStats = useStats();
   const weekStats = useWeekStats();
   const [view, setView] = useState<View>("week");
+  const [confirmReset, setConfirmReset] = useState(false);
   const stats = view === "week" ? weekStats : totalStats;
 
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <div className={styles.brand}>
-          <img
-            className={styles.logo}
-            src={logo}
-            alt=""
-            width={20}
-            height={20}
-          />
-          <span className={styles.wordmark}>BetterIG</span>
+        <div className={styles.headerTop}>
+          <button
+            className={styles.brand}
+            type="button"
+            onClick={() =>
+              browser.tabs.create({ url: "https://www.instagram.com/" })
+            }
+            title="Open Instagram"
+          >
+            <img
+              className={styles.logo}
+              src={logo}
+              alt=""
+              width={20}
+              height={20}
+            />
+            <span className={styles.wordmark}>BetterIG</span>
+          </button>
+          <button
+            className={styles.reset}
+            onClick={() => setConfirmReset(true)}
+            aria-label="Reset counters"
+            title="Reset counters"
+          >
+            <RotateCcw size={15} />
+          </button>
         </div>
-        <span className={styles.tag}>
-          Instagram, the way it was meant to be
-        </span>
+        <span className={styles.tag}>Instagram the way it was meant to be</span>
       </header>
 
+      {confirmReset ? (
+        <section className={styles.confirm}>
+          <div className={styles.confirmIcon}>
+            <AlertTriangle size={28} />
+          </div>
+          <span className={styles.confirmTitle}>Reset your metrics?</span>
+          <span className={styles.confirmDesc}>
+            This will clear all your counters. This can&apos;t be undone.
+          </span>
+          <div className={styles.confirmActions}>
+            <button
+              className={styles.confirmCancel}
+              onClick={() => setConfirmReset(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className={styles.confirmConfirm}
+              onClick={() => {
+                resetStats();
+                setConfirmReset(false);
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </section>
+      ) : (
+        <>
       <section className={styles.hero}>
         <div className={styles.heroText}>
           <span className={styles.heroValue}>
             {formatDuration(stats.reelsTime)}
           </span>
           <span className={styles.heroLabel}>
-            {view === "week" ? "watched in reels this week" : "watched in reels"}
+            {view === "week"
+              ? "watched in reels this week"
+              : "watched in reels"}
           </span>
         </div>
 
@@ -131,11 +175,6 @@ export function App() {
                 onClick={() => setFlags({ [f.key]: !on })}
                 aria-pressed={on}
               >
-                <span
-                  className={`${styles.rowIcon} ${on ? styles.rowIconOn : ""}`}
-                >
-                  {f.icon}
-                </span>
                 <span className={styles.rowText}>
                   <span className={styles.rowLabel}>{f.label}</span>
                   <span className={styles.rowDesc}>{f.desc}</span>
@@ -157,15 +196,8 @@ export function App() {
           );
         })}
       </section>
-
-      <button
-        className={styles.reset}
-        onClick={() => resetStats()}
-        aria-label="Reset counters"
-      >
-        <RotateCcw size={13} />
-        Reset counters
-      </button>
+        </>
+      )}
     </div>
   );
 }

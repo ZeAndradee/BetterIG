@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { saveVolume } from "./useVolumeSync";
 import { bumpStat } from "@/utils/store";
 
 const HOLD_MS = 200;
@@ -26,9 +25,6 @@ function isTyping(): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || a.isContentEditable;
 }
 
-// Click Instagram's own Like (heart) button for the current view. Exact label
-// match so pressing L on an already-liked item (label "Unlike"/"Descurtir")
-// is a no-op rather than toggling off.
 function clickLike(): boolean {
   const LIKE_LABELS = ["like", "curtir"];
   const svgs = Array.from(document.querySelectorAll<SVGElement>("svg[aria-label]"));
@@ -72,9 +68,7 @@ export function useVideoShortcuts({
     };
 
     const toggleMute = () => {
-      const next = !video.muted;
-      saveVolume(video.volume, next);
-      video.muted = next;
+      video.muted = !video.muted;
       bumpInteraction();
     };
 

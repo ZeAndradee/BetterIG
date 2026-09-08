@@ -11,10 +11,21 @@
   gap: 4px;
 }
 
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .logo {
@@ -29,6 +40,7 @@
   font-size: 1.0625rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  color: #fff;
 }
 
 .tag {
@@ -42,6 +54,7 @@
   align-items: center;
   gap: 12px;
   padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .heroIcon {
@@ -120,9 +133,6 @@
 }
 
 .card {
-  border-radius: 12px;
-  background: #1c1d21;
-  padding: 4px 14px 0;
 }
 
 .row {
@@ -139,24 +149,6 @@
   font: inherit;
 }
 
-.rowIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  border-radius: 9px;
-  color: rgba(255, 255, 255, 0.6);
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-
-.rowIconOn {
-  color: var(--igw-primary);
-}
-
 .rowText {
   display: flex;
   flex-direction: column;
@@ -168,13 +160,11 @@
 .rowLabel {
   font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
 .rowDesc {
   font-size: 0.6875rem;
   color: rgba(255, 255, 255, 0.42);
-  letter-spacing: -0.005em;
 }
 
 .metrics {
@@ -195,7 +185,6 @@
 .metricValue {
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--igw-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -204,19 +193,93 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
+.confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 20px 8px 8px;
+}
+
+.confirmIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 184, 0, 0.12);
+  color: #ffb800;
+}
+
+.confirmTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.confirmDesc {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: -0.005em;
+  max-width: 220px;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.confirmCancel,
+.confirmConfirm {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.confirmCancel {
+  background: #1c1d21;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.confirmCancel:hover {
+  background: #25262b;
+  color: #fff;
+}
+
+.confirmConfirm {
+  background: #e0245e;
+  color: #fff;
+}
+
+.confirmConfirm:hover {
+  background: #c81e51;
+}
+
 .reset {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  align-self: center;
-  padding: 7px 14px;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: rgba(255, 255, 255, 0.42);
-  font: inherit;
-  font-size: 0.75rem;
   cursor: pointer;
   transition:
     background 0.12s ease,
