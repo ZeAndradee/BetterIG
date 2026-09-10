@@ -2,9 +2,9 @@
 
 **Instagram on your browser, the way it was meant to be.**
 
-A real video player for Instagram Web.
+Everything Instagram Web should have been, in one extension.
 
-Remember that jump scare when the audio blasts at full volume and you can't even rewind? That's over. BetterIG adds a native video player to Instagram Web with real controls, keyboard shortcuts, quality selection and stories you can actually scrub — the experience the desktop version always should have had.
+Instagram on the desktop always felt like a stripped-down copy of the app. BetterIG fills the gaps and improves the whole Instagram Web experience. It starts with the biggest pain: video. Remember that jump scare when the audio blasts at full volume and you can't even rewind? That's over. You get real video controls, keyboard shortcuts, quality selection, stories you can actually scrub and a clear view of the time you spend on the platform, with more of Instagram being improved in every update.
 
 ---
 
@@ -40,7 +40,7 @@ Everything is one key away. The shortcuts panel lives inside the control bar, so
 
 The extension popup shows how much time you actually spent on reels — this week or all time — along with reels watched, stories viewed and interactions. Each feature can be turned on or off independently, and every counter can be reset at any moment.
 
-![BetterIG extension popup with watch time and feature toggles](https://github-production-user-asset-6210df.s3.amazonaws.com/59659214/649161936-a188b9dd-9a3d-4838-befd-bb48f4cb3be4.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20260910%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260910T033752Z&X-Amz-Expires=300&X-Amz-Signature=307661f47ce8739f1ec50cd750db626a1d22df3ee51e40e8039201e1feb7699d&X-Amz-SignedHeaders=host&response-content-type=image%2Fpng)
+![BetterIG extension popup with watch time and feature toggles](https://github-production-user-asset-6210df.s3.amazonaws.com/59659214/649162837-dca2989a-0d44-4ea3-ac17-4af8a32af4a6.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20260910%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260910T033951Z&X-Amz-Expires=300&X-Amz-Signature=bfe3027fb3390f888d5bab8fbb6686ea9dbc4f71c115218c89aa9a9c8e231a5d&X-Amz-SignedHeaders=host&response-content-type=image%2Fpng)
 
 ---
 
@@ -58,7 +58,7 @@ The extension popup shows how much time you actually spent on reels — this wee
 
 ## Why people use BetterIG
 
-- It fixes the broken video experience on Instagram Web today
+- It fixes what's broken on Instagram Web today, starting with video
 - 100% local — your data is never collected, sold, or sent anywhere
 - Lightweight: it reorganizes the screen without changing the Instagram look you already know
 - Actively developed, with frequent updates
@@ -105,6 +105,10 @@ utils/store.ts  flags and stats persistence
 ## Feedback
 
 Got a bug or a feature idea? Open an issue. BetterIG grows from what the community asks for.
+
+## Privacy
+
+BetterIG has no servers and sends nothing off your device. See the [privacy policy](PRIVACY.md).
 
 ## Disclaimer
 
