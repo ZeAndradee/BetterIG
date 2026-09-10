@@ -17,6 +17,7 @@ const FLAGS_KEY = "iw_flags";
 const STATS_KEY = "iw_stats";
 const WEEK_STATS_KEY = "iw_week_stats";
 const WEEK_KEY = "iw_week";
+const WELCOME_KEY = "iw_welcome_seen";
 
 function startOfWeek(now = Date.now()): number {
   const d = new Date(now);
@@ -54,6 +55,7 @@ const cache: Shape = {
 };
 
 let weekStart = startOfWeek();
+let welcomePending = false;
 
 const listeners = new Set<() => void>();
 let hydrated = false;
@@ -69,7 +71,9 @@ async function hydrate() {
       STATS_KEY,
       WEEK_STATS_KEY,
       WEEK_KEY,
+      WELCOME_KEY,
     ]);
+    welcomePending = stored[WELCOME_KEY] !== true;
     cache[FLAGS_KEY] = { ...FLAGS_DEFAULT, ...(stored[FLAGS_KEY] as Flags) };
     cache[STATS_KEY] = { ...STATS_DEFAULT, ...(stored[STATS_KEY] as Stats) };
     cache[WEEK_STATS_KEY] = {
@@ -117,6 +121,10 @@ if (typeof browser !== "undefined" && browser.storage) {
         touched = true;
       }
     }
+    if (changes[WELCOME_KEY]) {
+      welcomePending = changes[WELCOME_KEY].newValue !== true;
+      touched = true;
+    }
     if (touched) emit();
   });
 }
@@ -133,6 +141,15 @@ export function getStats(): Stats {
 }
 export function getWeekStats(): Stats {
   return cache[WEEK_STATS_KEY];
+}
+export function getWelcomePending(): boolean {
+  return welcomePending;
+}
+
+export async function dismissWelcome() {
+  welcomePending = false;
+  emit();
+  await browser.storage.local.set({ [WELCOME_KEY]: true });
 }
 
 export async function setFlags(patch: Partial<Flags>) {
@@ -178,4 +195,11 @@ export function useStats(): Stats {
 }
 export function useWeekStats(): Stats {
   return useSyncExternalStore(subscribe, getWeekStats, getWeekStats);
+}
+export function useWelcomePending(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    getWelcomePending,
+    getWelcomePending,
+  );
 }

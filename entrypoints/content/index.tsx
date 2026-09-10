@@ -1,12 +1,20 @@
 import ReactDOM from 'react-dom/client';
 import { VideoControls } from '@/components/VideoControls/VideoControls';
-import { useFlags } from '@/utils/store';
+import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal';
+import { useFlags, useWelcomePending, dismissWelcome } from '@/utils/store';
 import './globals.css';
 
 function App() {
   const flags = useFlags();
-  if (!flags.video && !flags.stories) return null;
-  return <VideoControls videoEnabled={flags.video} storiesEnabled={flags.stories} />;
+  const welcome = useWelcomePending();
+  return (
+    <>
+      {(flags.video || flags.stories) && (
+        <VideoControls videoEnabled={flags.video} storiesEnabled={flags.stories} />
+      )}
+      {welcome && <WelcomeModal onClose={dismissWelcome} />}
+    </>
+  );
 }
 
 export default defineContentScript({

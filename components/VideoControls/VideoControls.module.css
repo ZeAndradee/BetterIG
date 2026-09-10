@@ -147,10 +147,6 @@
   transition: opacity 0.18s ease;
 }
 
-.bottomControls {
-  margin-bottom: 8px;
-}
-
 .hidden {
   opacity: 0;
   pointer-events: none;

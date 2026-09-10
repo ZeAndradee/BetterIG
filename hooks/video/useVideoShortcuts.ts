@@ -18,11 +18,26 @@ interface Options {
   onSeek?: (dir: SeekDir) => void;
 }
 
-function isTyping(): boolean {
-  const a = document.activeElement as HTMLElement | null;
-  if (!a) return false;
-  const tag = a.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || a.isContentEditable;
+const FORM_TAGS = ["INPUT", "TEXTAREA", "SELECT", "OPTION"];
+const TEXT_ROLES = ["textbox", "searchbox", "combobox", "spinbutton"];
+
+function deepActiveElement(): HTMLElement | null {
+  let a = document.activeElement as HTMLElement | null;
+  while (a && a.shadowRoot && a.shadowRoot.activeElement) {
+    a = a.shadowRoot.activeElement as HTMLElement | null;
+  }
+  return a;
+}
+
+function isBlocked(e: KeyboardEvent): boolean {
+  if (e.metaKey || e.ctrlKey || e.altKey) return true;
+  if (e.isComposing || e.keyCode === 229) return true;
+  const a = deepActiveElement();
+  if (!a || a === document.body || a === document.documentElement) return false;
+  if (a.isContentEditable) return true;
+  if (FORM_TAGS.includes(a.tagName)) return true;
+  const role = (a.getAttribute("role") || "").toLowerCase();
+  return TEXT_ROLES.includes(role);
 }
 
 function clickLike(): boolean {
@@ -64,7 +79,7 @@ export function useVideoShortcuts({
       bumpStat(isStory ? "storyActions" : "videoActions");
 
     const restoreSpeed = () => {
-      video.playbackRate = isReels ? speed : 1;
+      video.playbackRate = speed;
     };
 
     const toggleMute = () => {
@@ -92,7 +107,7 @@ export function useVideoShortcuts({
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (isTyping() || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isBlocked(e)) return;
 
       if (e.code === "Space") {
         e.preventDefault();
@@ -134,10 +149,9 @@ export function useVideoShortcuts({
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || isTyping()) return;
+      if (e.code !== "Space" || !spaceDown) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (!spaceDown) return;
       spaceDown = false;
       window.clearTimeout(holdTimer);
       if (holding) {
@@ -151,11 +165,23 @@ export function useVideoShortcuts({
       }
     };
 
+    const onBlur = () => {
+      spaceDown = false;
+      window.clearTimeout(holdTimer);
+      if (holding) {
+        holding = false;
+        restoreSpeed();
+        cbRef.current.onHoldEnd?.();
+      }
+    };
+
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
+    window.addEventListener("blur", onBlur);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("keyup", onKeyUp, true);
+      window.removeEventListener("blur", onBlur);
       window.clearTimeout(holdTimer);
       if (holding) {
         restoreSpeed();

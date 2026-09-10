@@ -8,7 +8,9 @@ import { usePointerInRect } from "@/hooks/video/usePointerInRect";
 import { useStorySegments } from "@/hooks/video/useStorySegments";
 import { useVideoShortcuts } from "@/hooks/video/useVideoShortcuts";
 import { usePersistentPause } from "@/hooks/video/usePersistentPause";
+import { useVideoQuality } from "@/hooks/video/useVideoQuality";
 import { bumpStat } from "@/utils/store";
+import { loadInterFont } from "@/utils/font";
 import { ConfigMenu, SPEEDS } from "./ConfigMenu/ConfigMenu";
 import { ShortcutsModal } from "./ShortcutsModal/ShortcutsModal";
 import styles from "./VideoControls.module.css";
@@ -42,21 +44,6 @@ function findScroller(el: HTMLElement | null): HTMLElement | null {
     n = n.parentElement;
   }
   return null;
-}
-
-let fontLoaded = false;
-function loadInterFont() {
-  if (fontLoaded || typeof document === "undefined") return;
-  fontLoaded = true;
-  try {
-    const url = browser.runtime.getURL("/fonts/InterVariable.woff2");
-    const face = new FontFace(
-      "Inter Variable",
-      `url(${url}) format("woff2-variations")`,
-      { weight: "100 900", style: "normal", display: "swap" },
-    );
-    face.load().then((f) => document.fonts.add(f)).catch(() => {});
-  } catch {}
 }
 
 function loadAutoscroll(): boolean {
@@ -125,6 +112,10 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
 
   const pathIsReels = window.location.pathname.startsWith("/reels");
   const pathIsStory = window.location.pathname.startsWith("/stories");
+  const pathIsFeed = window.location.pathname === "/";
+  const pathIsExplore = window.location.pathname.startsWith("/explore");
+  const showConfig = !pathIsStory && !pathIsFeed && !pathIsExplore;
+  const quality = useVideoQuality(video, videoEnabled && !pathIsStory);
   const rememberPaused = usePersistentPause(
     video,
     videoEnabled && !pathIsReels && !pathIsStory,
@@ -136,10 +127,10 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
   };
   useVideoShortcuts({
     video,
-    enabled: (pathIsReels && videoEnabled) || (pathIsStory && storiesEnabled),
+    enabled: pathIsStory ? storiesEnabled : videoEnabled,
     isReels: pathIsReels,
     isStory: pathIsStory,
-    speed,
+    speed: showConfig ? speed : 1,
     onHoldStart: () => {
       window.clearTimeout(indicatorTimer.current);
       setIndicator("hold");
@@ -164,10 +155,9 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
   useEffect(ensureFullscreenStyle, []);
 
   useEffect(() => {
-    if (!video) return;
-    if (!window.location.pathname.startsWith("/reels")) return;
+    if (!video || !showConfig) return;
     video.playbackRate = speed;
-  }, [video, speed]);
+  }, [video, speed, showConfig]);
 
   useEffect(() => {
     if (!autoscroll) return;
@@ -411,15 +401,18 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
     bumpInteraction();
   };
 
+  const selectQuality = (label: string) => {
+    quality.setQuality(label);
+    bumpInteraction();
+  };
+
   const renderControls = (expandUp: boolean) => (
     <div
-      className={`${styles.controlsRow} ${isReels ? "" : styles.bottomControls} ${
-        visible ? "" : styles.hidden
-      }`}
+      className={`${styles.controlsRow} ${visible ? "" : styles.hidden}`}
       onMouseEnter={() => setHoverBar(true)}
       onMouseLeave={() => setHoverBar(false)}
     >
-      {isReels && (
+      {showConfig && (
         <div className={styles.configGroup} ref={configGroupRef}>
           <button
             className={styles.btn}
@@ -433,10 +426,14 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
               expandUp={expandUp}
               autoscroll={autoscroll}
               speed={speed}
-              showFullscreen={isReels}
+              showFullscreen
+              showAutoscroll={isReels}
+              quality={quality.state}
+              qualityPref={quality.pref}
               onToggleAutoscroll={toggleAutoscroll}
               onCycleSpeed={cycleSpeed}
               onFullscreen={toggleFullscreen}
+              onSelectQuality={selectQuality}
               onShowShortcuts={() => {
                 setConfigOpen(false);
                 setShortcutsOpen(true);
@@ -612,6 +609,14 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
           <Play size={30} fill="#273034" strokeWidth={0} />
         )}
       </button>
+      {showConfig && (
+        <div
+          className={`${styles.topBar} ${visible ? "" : styles.hidden}`}
+          style={topPosition}
+        >
+          {renderControls(false)}
+        </div>
+      )}
       <div
         className={styles.bottomBar}
         style={bottomPosition}
@@ -621,6 +626,7 @@ export function VideoControls({ videoEnabled, storiesEnabled }: Props) {
         {topInfo}
         {scrubber}
       </div>
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }

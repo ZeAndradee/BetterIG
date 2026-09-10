@@ -12,7 +12,7 @@ export default defineConfig({
     },
     web_accessible_resources: [
       {
-        resources: ["fonts/*"],
+        resources: ["fonts/*", "icon/*"],
         matches: ["https://*.instagram.com/*"],
       },
     ],
